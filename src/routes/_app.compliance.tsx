@@ -37,7 +37,7 @@ function Compliance() {
     queryKey: ["compliance_dashboard"],
     queryFn: async () => {
       if (!userId) return null;
-      return await getComplianceDashboardFn(userId);
+      return await getComplianceDashboardFn({ data: userId });
     },
     enabled: !!userId,
   });
@@ -47,7 +47,7 @@ function Compliance() {
     queryKey: ["audit_report", reportStandard],
     queryFn: async () => {
       if (!userId || !reportStandard) return null;
-      return await generateAuditReportFn({ standardCode: reportStandard, userId });
+      return await generateAuditReportFn({ data: { standardCode: reportStandard, userId } });
     },
     enabled: !!userId && !!reportStandard && isReportOpen,
     staleTime: 1000 * 60 * 15,
