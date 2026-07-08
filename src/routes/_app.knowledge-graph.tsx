@@ -1,111 +1,181 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { getKnowledgeGraphFn, getNodeDetailsFn, GraphNode, GraphEdge } from "@/functions/graph";
 import {
   Maximize2, Search, ZoomIn, ZoomOut, Filter, Cog, FileText, User,
-  Wrench, ShieldCheck, TriangleAlert, ClipboardCheck, X, ExternalLink,
+  Wrench, ShieldCheck, TriangleAlert, X, ExternalLink, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { PageBody, PageHeader } from "@/components/layout/page-header";
+import ReactMarkdown from "react-markdown";
+
+// Since ForceGraph2D uses canvas, we only render it on the client
+let ForceGraph2D: any = null;
+if (typeof window !== "undefined") {
+  ForceGraph2D = require("react-force-graph-2d").default;
+}
 
 export const Route = createFileRoute("/_app/knowledge-graph")({
   head: () => ({ meta: [{ title: "Knowledge Graph — IndustrialMind AI" }] }),
   component: KnowledgeGraph,
 });
 
-type Node = { id: string; label: string; kind: string; x: number; y: number; r: number };
-const nodes: Node[] = [
-  { id: "hx88", label: "HX-88", kind: "asset", x: 50, y: 50, r: 26 },
-  { id: "p101", label: "P-101", kind: "asset", x: 22, y: 30, r: 20 },
-  { id: "c204", label: "C-204", kind: "asset", x: 78, y: 28, r: 20 },
-  { id: "b17", label: "B-17", kind: "asset", x: 30, y: 78, r: 22 },
-  { id: "sop1", label: "SOP-HX-05", kind: "doc", x: 68, y: 72, r: 15 },
-  { id: "insp", label: "Insp Q3", kind: "doc", x: 62, y: 20, r: 14 },
-  { id: "rca", label: "RCA-2024-011", kind: "incident", x: 12, y: 60, r: 15 },
-  { id: "haz", label: "HAZOP-A", kind: "doc", x: 88, y: 55, r: 14 },
-  { id: "iso", label: "ISO 55001", kind: "compliance", x: 45, y: 12, r: 14 },
-  { id: "eng1", label: "S. Malhotra", kind: "person", x: 15, y: 85, r: 12 },
-  { id: "eng2", label: "R. Iyer", kind: "person", x: 85, y: 85, r: 12 },
-  { id: "wo", label: "WO-88423", kind: "maintenance", x: 90, y: 40, r: 13 },
-];
-
-const edges: [string, string][] = [
-  ["hx88", "p101"], ["hx88", "c204"], ["hx88", "b17"], ["hx88", "sop1"],
-  ["hx88", "insp"], ["hx88", "rca"], ["hx88", "haz"], ["hx88", "iso"],
-  ["hx88", "wo"], ["p101", "eng1"], ["c204", "eng2"], ["b17", "sop1"],
-  ["rca", "eng1"], ["wo", "sop1"], ["insp", "iso"],
-];
-
 const kindStyle: Record<string, { fill: string; icon: any; label: string }> = {
-  asset: { fill: "var(--color-primary)", icon: Cog, label: "Asset" },
-  doc: { fill: "var(--color-accent)", icon: FileText, label: "Document" },
-  incident: { fill: "var(--color-destructive)", icon: TriangleAlert, label: "Incident" },
-  compliance: { fill: "var(--color-warning)", icon: ShieldCheck, label: "Compliance" },
-  person: { fill: "var(--color-info)", icon: User, label: "Person" },
-  maintenance: { fill: "var(--color-success)", icon: Wrench, label: "Maintenance" },
+  asset: { fill: "#10b981", icon: Cog, label: "Asset" },
+  doc: { fill: "#3b82f6", icon: FileText, label: "Document" },
+  incident: { fill: "#ef4444", icon: TriangleAlert, label: "Incident" },
+  compliance: { fill: "#f59e0b", icon: ShieldCheck, label: "Compliance" },
+  person: { fill: "#8b5cf6", icon: User, label: "Person" },
+  department: { fill: "#6366f1", icon: Wrench, label: "Department" },
+  maintenance: { fill: "#14b8a6", icon: Wrench, label: "Maintenance" },
 };
 
 function KnowledgeGraph() {
-  const [selected, setSelected] = useState<Node | null>(nodes[0]);
+  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const fgRef = useRef<any>();
+
+  const { data: session } = useQuery({
+    queryKey: ["session"],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getSession();
+      return data.session;
+    }
+  });
+  const userId = session?.user?.id;
+
+  const { data: graphData, isLoading: isLoadingGraph } = useQuery({
+    queryKey: ["knowledge_graph"],
+    queryFn: async () => {
+      if (!userId) return { nodes: [], edges: [] };
+      return await getKnowledgeGraphFn(userId);
+    },
+    enabled: !!userId
+  });
+
+  const { data: nodeDetails, isLoading: isLoadingDetails } = useQuery({
+    queryKey: ["node_details", selectedNode?.id],
+    queryFn: async () => {
+      if (!userId || !selectedNode) return null;
+      return await getNodeDetailsFn({
+        nodeId: selectedNode.id,
+        nodeLabel: selectedNode.label,
+        nodeKind: selectedNode.kind,
+        userId
+      });
+    },
+    enabled: !!userId && !!selectedNode
+  });
+
+  // Handle Search Filtering
+  const filteredData = useMemo(() => {
+    if (!graphData) return { nodes: [], edges: [] };
+    if (!searchQuery) return graphData;
+
+    const query = searchQuery.toLowerCase();
+    const matchedNodes = new Set<string>();
+
+    graphData.nodes.forEach(n => {
+      if (n.label.toLowerCase().includes(query)) matchedNodes.add(n.id);
+    });
+
+    const filteredNodes = graphData.nodes.filter(n => matchedNodes.has(n.id));
+    const filteredEdges = graphData.edges.filter(e => matchedNodes.has(e.source as string) && matchedNodes.has(e.target as string));
+
+    return { nodes: filteredNodes, edges: filteredEdges };
+  }, [graphData, searchQuery]);
+
+  const handleZoomIn = () => fgRef.current?.zoom(fgRef.current.zoom() * 1.2, 400);
+  const handleZoomOut = () => fgRef.current?.zoom(fgRef.current.zoom() * 0.8, 400);
+
+  const paintNode = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+    const style = kindStyle[node.kind] || kindStyle.asset;
+    const label = node.label;
+    const fontSize = 12 / globalScale;
+    const radius = Math.sqrt(node.val) * 3;
+
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI, false);
+    ctx.fillStyle = selectedNode?.id === node.id ? "#ffffff" : style.fill;
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = style.fill;
+    ctx.stroke();
+
+    if (globalScale > 0.8 || selectedNode?.id === node.id) {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = `600 ${fontSize}px Inter, sans-serif`;
+      ctx.fillText(label, node.x, node.y + radius + (8 / globalScale));
+    }
+  }, [selectedNode]);
+
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <PageHeader
         breadcrumb="Intelligence"
         title="Knowledge Graph"
-        description="126,483 semantic links across assets, documents, incidents, people and compliance records."
+        description={`${graphData?.nodes.length || 0} semantic nodes and ${graphData?.edges.length || 0} relationships auto-generated from your documents.`}
         actions={<>
-          <Button variant="outline" size="sm"><Filter className="h-4 w-4" /> Filters</Button>
-          <Button size="sm" variant="outline"><Maximize2 className="h-4 w-4" /> Fullscreen</Button>
+          <Button variant="outline" size="sm"><Filter className="h-4 w-4 mr-1" /> Filters</Button>
+          <Button size="sm" variant="outline"><Maximize2 className="h-4 w-4 mr-1" /> Fullscreen</Button>
         </>}
       />
-      <PageBody>
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+      
+      <PageBody className="flex-1 pb-4">
+        <div className="grid h-full gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* Graph canvas */}
-          <div className="relative h-[640px] overflow-hidden rounded-2xl border border-border/60 bg-card">
-            <div className="absolute inset-0 gradient-mesh opacity-40" />
-            <div className="absolute inset-x-4 top-4 z-10 flex items-center gap-2">
-              <div className="relative flex-1">
+          <div className="relative h-full min-h-[640px] overflow-hidden rounded-2xl border border-border/60 bg-card">
+            <div className="absolute inset-0 gradient-mesh opacity-40 pointer-events-none" />
+            <div className="absolute inset-x-4 top-4 z-10 flex items-center gap-2 pointer-events-auto">
+              <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Search graph…" className="glass h-9 pl-9" />
+                <Input 
+                  placeholder="Search graph (e.g. Pump, Valve)..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="glass h-9 pl-9 shadow-lg" 
+                />
               </div>
-              <div className="flex items-center gap-1 rounded-lg border border-border/70 glass p-0.5">
-                <Button variant="ghost" size="icon" className="h-8 w-8"><ZoomIn className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8"><ZoomOut className="h-4 w-4" /></Button>
+              <div className="flex items-center gap-1 rounded-lg border border-border/70 glass p-0.5 shadow-lg bg-background/50 backdrop-blur">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomIn}><ZoomIn className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomOut}><ZoomOut className="h-4 w-4" /></Button>
               </div>
             </div>
 
-            <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid meet">
-              <defs>
-                <radialGradient id="glow">
-                  <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.5} />
-                  <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
-                </radialGradient>
-              </defs>
-              {edges.map(([a, b], i) => {
-                const na = nodes.find(n => n.id === a)!;
-                const nb = nodes.find(n => n.id === b)!;
-                return (
-                  <line key={i} x1={na.x} y1={na.y} x2={nb.x} y2={nb.y}
-                    stroke="var(--color-primary)" strokeOpacity={0.35} strokeWidth={0.15}
-                    strokeDasharray="0.5 0.5" className="animate-pulse-glow" style={{ animationDelay: `${i * 0.2}s` }} />
-                );
-              })}
-              {nodes.map((n) => {
-                const s = kindStyle[n.kind];
-                const isSel = selected?.id === n.id;
-                return (
-                  <g key={n.id} onClick={() => setSelected(n)} className="cursor-pointer">
-                    {isSel && <circle cx={n.x} cy={n.y} r={n.r / 4 + 3} fill="url(#glow)" />}
-                    <circle cx={n.x} cy={n.y} r={n.r / 8} fill={s.fill} stroke={isSel ? "white" : "transparent"} strokeWidth={0.3} className="transition-all" />
-                    <text x={n.x} y={n.y + n.r / 8 + 2} textAnchor="middle" fontSize={1.6} fill="var(--color-foreground)" fontWeight={600}>{n.label}</text>
-                  </g>
-                );
-              })}
-            </svg>
+            {isLoadingGraph ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="animate-pulse">Building semantic graph from documents...</p>
+                </div>
+              </div>
+            ) : typeof window !== "undefined" && ForceGraph2D && (
+              <div className="absolute inset-0 [&_canvas]:outline-none">
+                <ForceGraph2D
+                  ref={fgRef}
+                  graphData={filteredData}
+                  nodeCanvasObject={paintNode}
+                  nodeRelSize={6}
+                  linkColor={() => 'rgba(148, 163, 184, 0.2)'}
+                  linkWidth={0.5}
+                  onNodeClick={(node: any) => {
+                    setSelectedNode(node);
+                    fgRef.current?.centerAt(node.x, node.y, 1000);
+                    fgRef.current?.zoom(2.5, 1000);
+                  }}
+                  onBackgroundClick={() => setSelectedNode(null)}
+                  d3VelocityDecay={0.3}
+                />
+              </div>
+            )}
 
             {/* Legend */}
-            <div className="absolute bottom-4 left-4 z-10 glass rounded-xl p-3">
+            <div className="absolute bottom-4 left-4 z-10 glass rounded-xl p-3 bg-background/60 backdrop-blur shadow-lg pointer-events-auto">
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Legend</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {Object.entries(kindStyle).map(([k, s]) => (
@@ -119,64 +189,68 @@ function KnowledgeGraph() {
           </div>
 
           {/* Detail drawer */}
-          <aside className="rounded-2xl border border-border/60 bg-card">
-            {selected ? (
+          <aside className="h-full rounded-2xl border border-border/60 bg-card overflow-y-auto">
+            {selectedNode ? (
               <>
-                <div className="flex items-center justify-between border-b border-border/60 p-5">
+                <div className="flex items-center justify-between border-b border-border/60 p-5 sticky top-0 bg-card/80 backdrop-blur z-10">
                   <div className="flex items-center gap-3">
-                    <div className="grid h-11 w-11 place-items-center rounded-xl" style={{ background: `color-mix(in oklab, ${kindStyle[selected.kind].fill} 20%, transparent)`, color: kindStyle[selected.kind].fill }}>
-                      {(() => { const I = kindStyle[selected.kind].icon; return <I className="h-5 w-5" />; })()}
+                    <div className="grid h-11 w-11 place-items-center rounded-xl" style={{ background: `color-mix(in oklab, ${kindStyle[selectedNode.kind]?.fill || "#fff"} 20%, transparent)`, color: kindStyle[selectedNode.kind]?.fill || "#fff" }}>
+                      {(() => { const I = kindStyle[selectedNode.kind]?.icon || Cog; return <I className="h-5 w-5" />; })()}
                     </div>
                     <div>
-                      <p className="text-base font-semibold text-foreground">{selected.label}</p>
-                      <p className="text-[11px] text-muted-foreground">{kindStyle[selected.kind].label}</p>
+                      <p className="text-base font-semibold text-foreground truncate max-w-[200px]" title={selectedNode.label}>{selectedNode.label}</p>
+                      <p className="text-[11px] text-muted-foreground">{kindStyle[selectedNode.kind]?.label || "Unknown"}</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => setSelected(null)}><X className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => setSelectedNode(null)}><X className="h-4 w-4" /></Button>
                 </div>
-                <div className="space-y-4 p-5">
+                
+                <div className="space-y-6 p-5">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Overview</p>
-                    <p className="mt-1.5 text-sm text-foreground">Shell &amp; Tube Heat Exchanger, part of Heat Recovery Unit 3. Critical asset with active anomaly detection.</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center justify-between">
+                      AI Generated Insights
+                      {isLoadingDetails && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+                    </p>
+                    
+                    {isLoadingDetails ? (
+                      <div className="space-y-2 mt-2">
+                        <div className="h-2 w-full bg-muted rounded-full animate-pulse" />
+                        <div className="h-2 w-5/6 bg-muted rounded-full animate-pulse" />
+                        <div className="h-2 w-4/6 bg-muted rounded-full animate-pulse" />
+                      </div>
+                    ) : (
+                      <div className="text-sm text-foreground prose prose-sm dark:prose-invert max-w-none">
+                        <ReactMarkdown>{nodeDetails?.summary || "No insights found."}</ReactMarkdown>
+                      </div>
+                    )}
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Stat label="Health" value="34%" tone="destructive" />
-                    <Stat label="RUL" value="21 d" tone="warning" />
-                    <Stat label="Linked docs" value="42" />
-                    <Stat label="Incidents" value="3" />
-                  </div>
+                  
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Connected nodes</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Connected Documents</p>
                     <div className="mt-2 space-y-1.5">
-                      {["SOP-HX-05", "RCA-2024-011", "HAZOP-A", "Insp Q3", "WO-88423", "ISO 55001"].map((n) => (
-                        <div key={n} className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs">
-                          <span className="truncate text-foreground">{n}</span>
-                          <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                      {nodeDetails?.relatedDocs?.map((n: any) => (
+                        <div key={n.id} className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs hover:bg-muted/50 transition-colors cursor-pointer group">
+                          <span className="truncate text-foreground max-w-[200px]" title={n.name}>{n.name}</span>
+                          <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
                       ))}
+                      {!isLoadingDetails && nodeDetails?.relatedDocs?.length === 0 && (
+                        <p className="text-xs text-muted-foreground">No documents found linked to this entity.</p>
+                      )}
                     </div>
                   </div>
-                  <Button className="w-full gradient-primary text-white shadow-elegant">Open full profile</Button>
+                  <Button className="w-full gradient-primary text-white shadow-elegant">Explore in Copilot</Button>
                 </div>
               </>
             ) : (
-              <div className="p-10 text-center text-sm text-muted-foreground">
-                Click any node in the graph to inspect it.
+              <div className="flex h-full flex-col items-center justify-center p-10 text-center text-sm text-muted-foreground">
+                <Cog className="h-12 w-12 text-muted-foreground/30 mb-4 animate-[spin_10s_linear_infinite]" />
+                <p>Click any node in the graph to inspect its AI-generated insights and provenance.</p>
               </div>
             )}
           </aside>
         </div>
       </PageBody>
-    </div>
-  );
-}
-
-function Stat({ label, value, tone }: { label: string; value: string; tone?: "warning" | "destructive" }) {
-  const cls = tone === "destructive" ? "text-destructive" : tone === "warning" ? "text-warning" : "text-foreground";
-  return (
-    <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={`mt-1 text-xl font-bold ${cls}`}>{value}</p>
     </div>
   );
 }
