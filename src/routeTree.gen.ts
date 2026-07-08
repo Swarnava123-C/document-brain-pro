@@ -16,6 +16,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppUploadRouteImport } from './routes/_app.upload'
 import { Route as AppReportsRouteImport } from './routes/_app.reports'
+import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppMaintenanceRouteImport } from './routes/_app.maintenance'
 import { Route as AppKnowledgeGraphRouteImport } from './routes/_app.knowledge-graph'
 import { Route as AppDocumentsRouteImport } from './routes/_app.documents'
@@ -55,6 +56,11 @@ const AppUploadRoute = AppUploadRouteImport.update({
 const AppReportsRoute = AppReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMaintenanceRoute = AppMaintenanceRouteImport.update({
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/documents': typeof AppDocumentsRoute
   '/knowledge-graph': typeof AppKnowledgeGraphRoute
   '/maintenance': typeof AppMaintenanceRoute
+  '/notifications': typeof AppNotificationsRoute
   '/reports': typeof AppReportsRoute
   '/upload': typeof AppUploadRoute
 }
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/documents': typeof AppDocumentsRoute
   '/knowledge-graph': typeof AppKnowledgeGraphRoute
   '/maintenance': typeof AppMaintenanceRoute
+  '/notifications': typeof AppNotificationsRoute
   '/reports': typeof AppReportsRoute
   '/upload': typeof AppUploadRoute
 }
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/_app/documents': typeof AppDocumentsRoute
   '/_app/knowledge-graph': typeof AppKnowledgeGraphRoute
   '/_app/maintenance': typeof AppMaintenanceRoute
+  '/_app/notifications': typeof AppNotificationsRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/upload': typeof AppUploadRoute
 }
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/documents'
     | '/knowledge-graph'
     | '/maintenance'
+    | '/notifications'
     | '/reports'
     | '/upload'
   fileRoutesByTo: FileRoutesByTo
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/documents'
     | '/knowledge-graph'
     | '/maintenance'
+    | '/notifications'
     | '/reports'
     | '/upload'
   id:
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/_app/documents'
     | '/_app/knowledge-graph'
     | '/_app/maintenance'
+    | '/_app/notifications'
     | '/_app/reports'
     | '/_app/upload'
   fileRoutesById: FileRoutesById
@@ -237,6 +249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/notifications': {
+      id: '/_app/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/maintenance': {
       id: '/_app/maintenance'
       path: '/maintenance'
@@ -289,6 +308,7 @@ interface AppRouteChildren {
   AppDocumentsRoute: typeof AppDocumentsRoute
   AppKnowledgeGraphRoute: typeof AppKnowledgeGraphRoute
   AppMaintenanceRoute: typeof AppMaintenanceRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
   AppReportsRoute: typeof AppReportsRoute
   AppUploadRoute: typeof AppUploadRoute
 }
@@ -300,6 +320,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDocumentsRoute: AppDocumentsRoute,
   AppKnowledgeGraphRoute: AppKnowledgeGraphRoute,
   AppMaintenanceRoute: AppMaintenanceRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
   AppReportsRoute: AppReportsRoute,
   AppUploadRoute: AppUploadRoute,
 }
