@@ -52,7 +52,7 @@ function Dashboard() {
           <>
             <Button variant="outline" size="sm"><FileBarChart className="h-4 w-4" /> Generate report</Button>
             <Button asChild size="sm" className="gradient-primary text-white shadow-elegant">
-              <Link to="/app/copilot"><Sparkles className="h-4 w-4" /> Ask AI</Link>
+              <Link to="/copilot"><Sparkles className="h-4 w-4" /> Ask AI</Link>
             </Button>
           </>
         }
@@ -186,7 +186,7 @@ function Dashboard() {
                 <p className="text-sm font-semibold">Recent uploads</p>
                 <p className="text-xs text-muted-foreground">Live indexing pipeline</p>
               </div>
-              <Button asChild variant="ghost" size="sm"><Link to="/app/upload"><Upload className="h-4 w-4" /> Upload</Link></Button>
+              <Button asChild variant="ghost" size="sm"><Link to="/upload"><Upload className="h-4 w-4" /> Upload</Link></Button>
             </div>
             <div className="divide-y divide-border/60">
               {recentUploads.map((u) => (
@@ -209,7 +209,7 @@ function Dashboard() {
           <div className="rounded-2xl border border-border/60 bg-card">
             <div className="flex items-center justify-between border-b border-border/60 px-6 py-4">
               <p className="text-sm font-semibold">Notifications</p>
-              <Button asChild variant="ghost" size="sm"><Link to="/app/notifications">View all</Link></Button>
+              <Button asChild variant="ghost" size="sm"><Link to="/notifications">View all</Link></Button>
             </div>
             <div className="divide-y divide-border/60">
               {notifications.slice(0, 4).map((n) => {
@@ -239,10 +239,10 @@ function Dashboard() {
 
         <div className="mt-4 grid gap-4 lg:grid-cols-4">
           {[
-            { title: "Upload documents", desc: "Bulk PDFs, DWGs, Excel & scans", to: "/app/upload", icon: Upload },
-            { title: "Ask AI Copilot", desc: "Query 48k+ documents in seconds", to: "/app/copilot", icon: Sparkles },
-            { title: "Generate report", desc: "Compliance, maintenance & more", to: "/app/reports", icon: FileBarChart },
-            { title: "View assets", desc: "2,847 tracked units", to: "/app/maintenance", icon: Boxes },
+            { title: "Upload documents", desc: "Bulk PDFs, DWGs, Excel & scans", to: "/upload", icon: Upload },
+            { title: "Ask AI Copilot", desc: "Query 48k+ documents in seconds", to: "/copilot", icon: Sparkles },
+            { title: "Generate report", desc: "Compliance, maintenance & more", to: "/reports", icon: FileBarChart },
+            { title: "View assets", desc: "2,847 tracked units", to: "/maintenance", icon: Boxes },
           ].map((a) => (
             <Link key={a.title} to={a.to} className="group flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-elegant">
               <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl gradient-primary text-white shadow-elegant transition group-hover:scale-105">

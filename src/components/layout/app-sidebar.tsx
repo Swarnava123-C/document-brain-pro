@@ -12,24 +12,24 @@ import { Logo } from "@/components/logo";
 import { Badge } from "@/components/ui/badge";
 
 const primary = [
-  { title: "Dashboard", url: "/app/dashboard", icon: LayoutDashboard },
-  { title: "AI Copilot", url: "/app/copilot", icon: Sparkles, badge: "New" },
-  { title: "Upload Center", url: "/app/upload", icon: Upload },
-  { title: "Document Library", url: "/app/documents", icon: FolderOpen },
-  { title: "Knowledge Graph", url: "/app/knowledge-graph", icon: Network },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "AI Copilot", url: "/copilot", icon: Sparkles, badge: "New" },
+  { title: "Upload Center", url: "/upload", icon: Upload },
+  { title: "Document Library", url: "/documents", icon: FolderOpen },
+  { title: "Knowledge Graph", url: "/knowledge-graph", icon: Network },
 ];
 
 const intelligence = [
-  { title: "Maintenance", url: "/app/maintenance", icon: Wrench },
-  { title: "Compliance", url: "/app/compliance", icon: ShieldCheck },
-  { title: "Reports", url: "/app/reports", icon: FileBarChart },
+  { title: "Maintenance", url: "/maintenance", icon: Wrench },
+  { title: "Compliance", url: "/compliance", icon: ShieldCheck },
+  { title: "Reports", url: "/reports", icon: FileBarChart },
 ];
 
 const account = [
-  { title: "Notifications", url: "/app/notifications", icon: Bell, badge: "3" },
-  { title: "Profile", url: "/app/profile", icon: User },
-  { title: "Settings", url: "/app/settings", icon: Settings },
-  { title: "Help Center", url: "/app/help", icon: HelpCircle },
+  { title: "Notifications", url: "/notifications", icon: Bell, badge: "3" },
+  { title: "Profile", url: "/profile", icon: User },
+  { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Help Center", url: "/help", icon: HelpCircle },
 ];
 
 export function AppSidebar() {
@@ -69,7 +69,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border px-3 py-4">
-        <Link to="/app/dashboard">
+        <Link to="/dashboard">
           <Logo showText={!collapsed} />
         </Link>
       </SidebarHeader>

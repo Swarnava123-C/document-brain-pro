@@ -79,7 +79,7 @@ function LoginPage() {
               <Checkbox defaultChecked /> Keep me signed in for 30 days
             </label>
             <Button asChild className="h-11 w-full gradient-primary text-white shadow-elegant hover:opacity-95">
-              <Link to="/app/dashboard">Sign in <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/dashboard">Sign in <ArrowRight className="h-4 w-4" /></Link>
             </Button>
           </form>
 

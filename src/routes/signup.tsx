@@ -55,7 +55,7 @@ function SignupPage() {
               </div>
             </div>
             <Button asChild className="h-11 w-full gradient-primary text-white shadow-elegant">
-              <Link to="/app/dashboard">Create workspace <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/dashboard">Create workspace <ArrowRight className="h-4 w-4" /></Link>
             </Button>
           </form>
           <p className="mt-6 text-center text-sm text-muted-foreground">

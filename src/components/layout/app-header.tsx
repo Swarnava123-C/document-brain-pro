@@ -28,13 +28,13 @@ export function AppHeader() {
       </div>
       <div className="ml-auto flex items-center gap-2">
         <Button asChild size="sm" className="hidden gradient-primary text-white shadow-elegant hover:opacity-95 sm:inline-flex">
-          <Link to="/app/upload"><Upload className="h-4 w-4" /> Quick Upload</Link>
+          <Link to="/upload"><Upload className="h-4 w-4" /> Quick Upload</Link>
         </Button>
         <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
         <Button asChild variant="ghost" size="icon" className="relative">
-          <Link to="/app/notifications">
+          <Link to="/notifications">
             <Bell className="h-4 w-4" />
             <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
           </Link>
@@ -60,9 +60,9 @@ export function AppHeader() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild><Link to="/app/profile">Profile</Link></DropdownMenuItem>
-            <DropdownMenuItem asChild><Link to="/app/settings">Settings</Link></DropdownMenuItem>
-            <DropdownMenuItem asChild><Link to="/app/help">Help center</Link></DropdownMenuItem>
+            <DropdownMenuItem asChild><Link to="/profile">Profile</Link></DropdownMenuItem>
+            <DropdownMenuItem asChild><Link to="/settings">Settings</Link></DropdownMenuItem>
+            <DropdownMenuItem asChild><Link to="/help">Help center</Link></DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild><Link to="/login" className="text-destructive">Sign out</Link></DropdownMenuItem>
           </DropdownMenuContent>
