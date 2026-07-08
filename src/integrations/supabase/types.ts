@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      copilot_conversations: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          pinned: boolean | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          pinned?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          pinned?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      copilot_messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          role: string
+          content: string
+          citations: import('./types').Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          role: string
+          content: string
+          citations?: import('./types').Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          role?: string
+          content?: string
+          citations?: import('./types').Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       document_chunks: {
         Row: {
           id: string
