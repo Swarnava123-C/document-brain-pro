@@ -21,6 +21,7 @@ import { Route as AppProfileRouteImport } from './routes/_app.profile'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppMaintenanceRouteImport } from './routes/_app.maintenance'
 import { Route as AppKnowledgeGraphRouteImport } from './routes/_app.knowledge-graph'
+import { Route as AppHelpRouteImport } from './routes/_app.help'
 import { Route as AppDocumentsRouteImport } from './routes/_app.documents'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppCopilotRouteImport } from './routes/_app.copilot'
@@ -85,6 +86,11 @@ const AppKnowledgeGraphRoute = AppKnowledgeGraphRouteImport.update({
   path: '/knowledge-graph',
   getParentRoute: () => AppRoute,
 } as any)
+const AppHelpRoute = AppHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDocumentsRoute = AppDocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/copilot': typeof AppCopilotRoute
   '/dashboard': typeof AppDashboardRoute
   '/documents': typeof AppDocumentsRoute
+  '/help': typeof AppHelpRoute
   '/knowledge-graph': typeof AppKnowledgeGraphRoute
   '/maintenance': typeof AppMaintenanceRoute
   '/notifications': typeof AppNotificationsRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/copilot': typeof AppCopilotRoute
   '/dashboard': typeof AppDashboardRoute
   '/documents': typeof AppDocumentsRoute
+  '/help': typeof AppHelpRoute
   '/knowledge-graph': typeof AppKnowledgeGraphRoute
   '/maintenance': typeof AppMaintenanceRoute
   '/notifications': typeof AppNotificationsRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/_app/copilot': typeof AppCopilotRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/documents': typeof AppDocumentsRoute
+  '/_app/help': typeof AppHelpRoute
   '/_app/knowledge-graph': typeof AppKnowledgeGraphRoute
   '/_app/maintenance': typeof AppMaintenanceRoute
   '/_app/notifications': typeof AppNotificationsRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/copilot'
     | '/dashboard'
     | '/documents'
+    | '/help'
     | '/knowledge-graph'
     | '/maintenance'
     | '/notifications'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/copilot'
     | '/dashboard'
     | '/documents'
+    | '/help'
     | '/knowledge-graph'
     | '/maintenance'
     | '/notifications'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/_app/copilot'
     | '/_app/dashboard'
     | '/_app/documents'
+    | '/_app/help'
     | '/_app/knowledge-graph'
     | '/_app/maintenance'
     | '/_app/notifications'
@@ -308,6 +320,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppKnowledgeGraphRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/help': {
+      id: '/_app/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof AppHelpRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/documents': {
       id: '/_app/documents'
       path: '/documents'
@@ -344,6 +363,7 @@ interface AppRouteChildren {
   AppCopilotRoute: typeof AppCopilotRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDocumentsRoute: typeof AppDocumentsRoute
+  AppHelpRoute: typeof AppHelpRoute
   AppKnowledgeGraphRoute: typeof AppKnowledgeGraphRoute
   AppMaintenanceRoute: typeof AppMaintenanceRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
@@ -358,6 +378,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCopilotRoute: AppCopilotRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDocumentsRoute: AppDocumentsRoute,
+  AppHelpRoute: AppHelpRoute,
   AppKnowledgeGraphRoute: AppKnowledgeGraphRoute,
   AppMaintenanceRoute: AppMaintenanceRoute,
   AppNotificationsRoute: AppNotificationsRoute,
