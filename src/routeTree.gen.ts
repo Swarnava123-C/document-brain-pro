@@ -20,6 +20,7 @@ import { Route as AppKnowledgeGraphRouteImport } from './routes/_app.knowledge-g
 import { Route as AppDocumentsRouteImport } from './routes/_app.documents'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppCopilotRouteImport } from './routes/_app.copilot'
+import { Route as AppComplianceRouteImport } from './routes/_app.compliance'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -75,12 +76,18 @@ const AppCopilotRoute = AppCopilotRouteImport.update({
   path: '/copilot',
   getParentRoute: () => AppRoute,
 } as any)
+const AppComplianceRoute = AppComplianceRouteImport.update({
+  id: '/compliance',
+  path: '/compliance',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/compliance': typeof AppComplianceRoute
   '/copilot': typeof AppCopilotRoute
   '/dashboard': typeof AppDashboardRoute
   '/documents': typeof AppDocumentsRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/compliance': typeof AppComplianceRoute
   '/copilot': typeof AppCopilotRoute
   '/dashboard': typeof AppDashboardRoute
   '/documents': typeof AppDocumentsRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/_app/compliance': typeof AppComplianceRoute
   '/_app/copilot': typeof AppCopilotRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/documents': typeof AppDocumentsRoute
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/signup'
+    | '/compliance'
     | '/copilot'
     | '/dashboard'
     | '/documents'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/signup'
+    | '/compliance'
     | '/copilot'
     | '/dashboard'
     | '/documents'
@@ -146,6 +157,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/signup'
+    | '/_app/compliance'
     | '/_app/copilot'
     | '/_app/dashboard'
     | '/_app/documents'
@@ -241,10 +253,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCopilotRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/compliance': {
+      id: '/_app/compliance'
+      path: '/compliance'
+      fullPath: '/compliance'
+      preLoaderRoute: typeof AppComplianceRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppComplianceRoute: typeof AppComplianceRoute
   AppCopilotRoute: typeof AppCopilotRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDocumentsRoute: typeof AppDocumentsRoute
@@ -254,6 +274,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppComplianceRoute: AppComplianceRoute,
   AppCopilotRoute: AppCopilotRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDocumentsRoute: AppDocumentsRoute,
