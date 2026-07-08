@@ -10,8 +10,12 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PageBody, PageHeader } from "@/components/layout/page-header";
-import { documents } from "@/lib/mock-data";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { formatBytes } from "@/lib/pipeline";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_app/documents")({
   head: () => ({ meta: [{ title: "Document Library — IndustrialMind AI" }] }),
@@ -23,13 +27,37 @@ const depts = ["All Departments", "Process", "Operations", "Reliability", "HSE",
 
 function DocsPage() {
   const [view, setView] = useState<"grid" | "list">("grid");
+
+  const { data: dbDocs = [], isLoading } = useQuery({
+    queryKey: ["documents"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("documents").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const documents = dbDocs.map((d) => ({
+    id: d.id,
+    name: d.name,
+    type: d.doc_type,
+    size: formatBytes(d.size_bytes),
+    dept: d.department || "Unknown",
+    updated: formatDistanceToNow(new Date(d.created_at), { addSuffix: true }),
+    tags: d.keywords || [],
+  }));
+
   return (
     <div>
       <PageHeader
         breadcrumb="Workspace"
         title="Document Library"
-        description="48,392 indexed documents across all plants and units."
-        actions={<Button className="gradient-primary text-white shadow-elegant"><Upload className="h-4 w-4" /> Upload</Button>}
+        description={`${documents.length.toLocaleString()} indexed documents across all plants and units.`}
+        actions={
+          <Button asChild className="gradient-primary text-white shadow-elegant">
+            <Link to="/upload"><Upload className="h-4 w-4" /> Upload</Link>
+          </Button>
+        }
       />
       <PageBody>
         {/* Toolbar */}

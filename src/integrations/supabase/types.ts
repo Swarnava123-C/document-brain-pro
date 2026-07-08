@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      document_chunks: {
+        Row: {
+          id: string
+          document_id: string
+          chunk_index: number
+          content: string
+          metadata: import('./types').Json
+          embedding: number[] | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          document_id: string
+          chunk_index: number
+          content: string
+          metadata?: import('./types').Json
+          embedding?: number[] | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          document_id?: string
+          chunk_index?: number
+          content?: string
+          metadata?: import('./types').Json
+          embedding?: number[] | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           ai_summary: string | null
@@ -31,6 +61,7 @@ export type Database = {
           name: string
           regulatory_refs: string[] | null
           related_assets: string[] | null
+          full_text: string | null
           size_bytes: number
           status: string
           storage_path: string | null
@@ -53,6 +84,7 @@ export type Database = {
           name: string
           regulatory_refs?: string[] | null
           related_assets?: string[] | null
+          full_text?: string | null
           size_bytes?: number
           status?: string
           storage_path?: string | null
@@ -75,6 +107,7 @@ export type Database = {
           name?: string
           regulatory_refs?: string[] | null
           related_assets?: string[] | null
+          full_text?: string | null
           size_bytes?: number
           status?: string
           storage_path?: string | null
@@ -142,6 +175,22 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      match_document_chunks: {
+        Args: {
+          query_embedding: number[]
+          match_threshold?: number
+          match_count?: number
+          filter_doc_ids?: string[] | null
+        }
+        Returns: {
+          id: string
+          document_id: string
+          chunk_index: number
+          content: string
+          metadata: import('./types').Json
+          similarity: number
+        }[]
       }
     }
     Enums: {

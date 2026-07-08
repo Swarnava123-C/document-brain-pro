@@ -4,15 +4,16 @@ import {
   ArrowUpRight, ArrowDownRight, Upload, FileBarChart, MoreHorizontal,
   Bell, CircleCheck, TriangleAlert, Circle, Activity, TrendingUp,
 } from "lucide-react";
-import {
-  AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip as RTooltip,
-  CartesianGrid, PieChart, Pie, Cell, BarChart, Bar, Legend,
-} from "recharts";
+import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip as RTooltip, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { formatBytes } from "@/lib/pipeline";
+import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { PageBody, PageHeader } from "@/components/layout/page-header";
-import { stats, documentGrowth, equipmentHealth, complianceTrend, maintenanceTrend, recentUploads, notifications } from "@/lib/mock-data";
+import { stats, documentGrowth, equipmentHealth, complianceTrend, maintenanceTrend, notifications } from "@/lib/mock-data";
 
 const iconMap: Record<string, any> = { FileText, Boxes, Cog, Users, Wrench, ShieldCheck, Sparkles, Network };
 
@@ -42,6 +43,23 @@ function StatCard({ s }: { s: typeof stats[number] }) {
 }
 
 function Dashboard() {
+  const { data: latestDocs = [] } = useQuery({
+    queryKey: ["latest-documents"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("documents").select("*").order("created_at", { ascending: false }).limit(5);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const recentUploadsLive = latestDocs.map((d) => ({
+    name: d.name,
+    user: d.engineer_name || "System",
+    size: formatBytes(d.size_bytes),
+    status: d.status === "ready" ? "Ready" : "Processing",
+    time: formatDistanceToNow(new Date(d.created_at), { addSuffix: true }),
+  }));
+
   return (
     <div>
       <PageHeader
@@ -189,7 +207,10 @@ function Dashboard() {
               <Button asChild variant="ghost" size="sm"><Link to="/upload"><Upload className="h-4 w-4" /> Upload</Link></Button>
             </div>
             <div className="divide-y divide-border/60">
-              {recentUploads.map((u) => (
+              {recentUploadsLive.length === 0 && (
+                <div className="px-6 py-8 text-center text-sm text-muted-foreground">No recent uploads.</div>
+              )}
+              {recentUploadsLive.map((u) => (
                 <div key={u.name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-6 py-3 transition hover:bg-muted/30">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">

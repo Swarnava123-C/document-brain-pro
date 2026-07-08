@@ -14,6 +14,7 @@ import { PageBody, PageHeader } from "@/components/layout/page-header";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PIPELINE_STAGES, generateProfile, formatBytes, guessDocType, type IntelligenceProfile } from "@/lib/pipeline";
+import { processDocumentFn } from "@/functions/pipeline";
 
 export const Route = createFileRoute("/_app/upload")({
   head: () => ({ meta: [{ title: "Document Intelligence — IndustrialMind AI" }] }),
@@ -82,29 +83,7 @@ function UploadCenter() {
     return () => { supabase.removeChannel(channel); };
   }, [user, load]);
 
-  async function runPipeline(docId: string, filename: string) {
-    const profile = generateProfile(filename);
-    for (let i = 1; i < PIPELINE_STAGES.length; i++) {
-      const stage = PIPELINE_STAGES[i];
-      await new Promise((r) => setTimeout(r, stage.ms));
-      const patch: Partial<DocRow> = { current_stage: i, status: i === PIPELINE_STAGES.length - 1 ? "ready" : "processing" };
-      if (i === PIPELINE_STAGES.length - 1) {
-        Object.assign(patch, {
-          confidence: profile.confidence,
-          ai_summary: profile.ai_summary,
-          keywords: profile.keywords,
-          detected_equipment: profile.detected_equipment,
-          related_assets: profile.related_assets,
-          regulatory_refs: profile.regulatory_refs,
-          entities: profile.entities as unknown as Record<string, string[]>,
-          department: profile.department,
-          equipment_tag: profile.equipment_tag,
-          engineer_name: profile.engineer_name,
-        });
-      }
-      await supabase.from("documents").update(patch).eq("id", docId);
-    }
-  }
+
 
   async function handleFiles(files: FileList | File[]) {
     if (!user) { toast.error("Sign in to upload"); return; }
@@ -133,7 +112,9 @@ function UploadCenter() {
       toast.success(`${file.name} queued for intelligence pipeline`);
       setDocs((d) => [row, ...d]);
       setSelectedId(row.id);
-      runPipeline(row.id, file.name).catch(console.error);
+      if (!upErr) {
+        processDocumentFn({ data: { docId: row.id, storagePath, filename: file.name } }).catch(console.error);
+      }
     }
   }
 
