@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Search, Bell, Moon, Sun, Upload, Command, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { useClerk } from "@clerk/clerk-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,17 +14,25 @@ import {
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { CommandModal } from "@/components/layout/command-modal";
 
 export function AppHeader() {
   const { theme, toggle } = useTheme();
   const { user } = useAuth();
+  const { signOut: clerkSignOut } = useClerk();
   const navigate = useNavigate();
+  const [commandOpen, setCommandOpen] = useState(false);
 
-  const email = user?.email ?? "";
-  const fullName = (user?.user_metadata?.full_name as string | undefined) ?? email.split("@")[0] ?? "Signed in";
-  const initials = fullName.split(/\s+/).map(s => s[0]).slice(0, 2).join("").toUpperCase() || "U";
+  const email = (user as any)?.primaryEmailAddress?.emailAddress ?? (user as any)?.email ?? "swarnava@industrialmind.ai";
+  const fullName = (user as any)?.fullName ?? (user as any)?.user_metadata?.full_name ?? email.split("@")[0] ?? "Signed in";
+  const initials = fullName.split(/\s+/).map((s: string) => s[0]).slice(0, 2).join("").toUpperCase() || "U";
 
   async function signOut() {
+    try {
+      await clerkSignOut();
+    } catch (e) {
+      console.error(e);
+    }
     await supabase.auth.signOut();
     toast.success("Signed out");
     navigate({ to: "/login", replace: true });
@@ -30,14 +40,18 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/80 px-4 backdrop-blur-xl md:px-6">
+      <CommandModal open={commandOpen} onOpenChange={setCommandOpen} />
       <SidebarTrigger className="shrink-0" aria-label="Toggle sidebar" />
       <div className="relative hidden max-w-md flex-1 md:block">
         <label htmlFor="global-search" className="sr-only">Search workspace</label>
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" aria-hidden="true" />
         <Input
           id="global-search"
+          readOnly
+          onClick={() => setCommandOpen(true)}
+          onFocus={() => setCommandOpen(true)}
           placeholder="Search assets, documents, SOPs, incidents…"
-          className="h-10 border-border/60 bg-muted/40 pl-9 pr-16 text-sm shadow-none focus-visible:ring-1"
+          className="h-10 border-border/60 bg-muted/40 pl-9 pr-16 text-sm shadow-none focus-visible:ring-1 cursor-pointer"
         />
         <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-md border border-border/70 bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground md:inline-flex">
           <Command className="h-3 w-3" /> K

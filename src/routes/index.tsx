@@ -8,7 +8,29 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/logo";
-import { features, industries } from "@/lib/mock-data";
+
+const industries = [
+  { name: "Manufacturing", icon: "Factory", stats: "1,240+ plants" },
+  { name: "Oil & Gas", icon: "Fuel", stats: "380+ facilities" },
+  { name: "Energy & Power", icon: "Zap", stats: "520+ plants" },
+  { name: "Mining", icon: "Mountain", stats: "180+ sites" },
+  { name: "Steel", icon: "Hammer", stats: "95+ mills" },
+  { name: "Pharmaceutical", icon: "FlaskConical", stats: "210+ facilities" },
+  { name: "Chemicals", icon: "TestTubes", stats: "340+ plants" },
+  { name: "Infrastructure", icon: "Building2", stats: "610+ projects" },
+];
+
+const features = [
+  { icon: "Sparkles", title: "AI Copilot", desc: "Ask any question about your plant. Get answers with cited sources from 40k+ documents." },
+  { icon: "Network", title: "Knowledge Graph", desc: "Every asset, drawing, incident, and SOP linked into a living operational brain." },
+  { icon: "TrendingUp", title: "Predictive Maintenance", desc: "Forecast failures weeks in advance using sensor telemetry + historical work orders." },
+  { icon: "ShieldCheck", title: "Compliance Intelligence", desc: "Track ISO 55001, OISD, PESO, Factory Act, ISO 14001 continuously — not once a year." },
+  { icon: "FileSearch", title: "Semantic Document Search", desc: "Search meaning, not keywords. Across PDFs, DWGs, scans, Excel, and emails." },
+  { icon: "GitBranch", title: "Root Cause Analysis", desc: "AI-assisted RCA in minutes: pulls incident history, drawings, and expert notes." },
+  { icon: "ScanText", title: "OCR + Entity Extraction", desc: "Understands scanned drawings, handwritten logs, and legacy vendor manuals." },
+  { icon: "PenTool", title: "Engineering Drawings", desc: "Native P&ID, isometric, and GA drawing understanding with tag-level linking." },
+  { icon: "History", title: "Full Asset History", desc: "Every touchpoint of every asset — from commissioning to today — one timeline." },
+];
 
 const IconMap: Record<string, any> = {
   Sparkles, Network, TrendingUp, ShieldCheck, FileSearch, GitBranch, ScanText, PenTool, History,

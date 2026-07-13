@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { getDashboardIntelligenceFn, generateExecutiveBriefingFn } from "@/functions/dashboard";
+import { exportPDF, exportCSV } from "@/lib/exports";
 import {
   FileText, Boxes, Cog, Users, Wrench, ShieldCheck, Sparkles, Network,
   ArrowUpRight, ArrowDownRight, Upload, FileBarChart, MoreHorizontal,
-  Bell, CircleCheck, TriangleAlert, Circle, Activity, TrendingUp, Loader2
+  Bell, CircleCheck, TriangleAlert, Circle, Activity, TrendingUp, Loader2, Download
 } from "lucide-react";
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip as RTooltip, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -47,16 +49,31 @@ function StatCard({ s, isLoading }: { s: any, isLoading: boolean }) {
 
 function Dashboard() {
   const [isBriefingOpen, setIsBriefingOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { userId } = useAuth();
 
-  // Auth Session
-  const { data: session } = useQuery({
-    queryKey: ["session"],
-    queryFn: async () => {
-      const { data } = await supabase.auth.getSession();
-      return data.session;
-    }
-  });
-  const userId = session?.user?.id;
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel("dashboard_realtime_sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "documents" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["dashboard_intelligence"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "maintenance_records" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["dashboard_intelligence"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "compliance_reports" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["dashboard_intelligence"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["dashboard_intelligence"] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, queryClient]);
 
   // Fetch Live Dashboard Intelligence
   const { data: dashboard, isLoading } = useQuery({
@@ -126,6 +143,33 @@ function Dashboard() {
                 </div>
               </DialogContent>
             </Dialog>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 hidden sm:inline-flex"
+              onClick={() => {
+                exportCSV("dashboard_metrics.csv", stats.map((s: any) => ({ Metric: s.label, Value: s.value, Trend: s.delta })));
+              }}
+            >
+              <Download className="h-3.5 w-3.5" /> CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 hidden sm:inline-flex"
+              onClick={() => {
+                exportPDF({
+                  filename: "executive_command_center_report.pdf",
+                  title: "Executive Command Center Report",
+                  subtitle: "Live Operational Intelligence Summary",
+                  kpis: stats.map((s: any) => ({ label: s.label, value: String(s.value) })),
+                  columns: ["Metric", "Live Value", "Delta / Status"],
+                  rows: stats.map((s: any) => [s.label, String(s.value), String(s.delta)]),
+                });
+              }}
+            >
+              <Download className="h-3.5 w-3.5" /> PDF
+            </Button>
             <Button asChild size="sm" className="gradient-primary text-white shadow-elegant gap-2">
               <Link to="/copilot"><Sparkles className="h-4 w-4" /> Ask AI Copilot</Link>
             </Button>

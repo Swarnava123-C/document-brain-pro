@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          id: string
+          user_id: string
+          action: string
+          target_type: string | null
+          target_id: string | null
+          details: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          action: string
+          target_type?: string | null
+          target_id?: string | null
+          details?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          action?: string
+          target_type?: string | null
+          target_id?: string | null
+          details?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      compliance_reports: {
+        Row: {
+          id: string
+          user_id: string
+          standard_code: string
+          standard_name: string
+          score: number | null
+          status: string | null
+          next_review: string | null
+          violations_count: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          standard_code: string
+          standard_name: string
+          score?: number | null
+          status?: string | null
+          next_review?: string | null
+          violations_count?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          standard_code?: string
+          standard_name?: string
+          score?: number | null
+          status?: string | null
+          next_review?: string | null
+          violations_count?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       copilot_conversations: {
         Row: {
           id: string
@@ -170,6 +239,93 @@ export type Database = {
         }
         Relationships: []
       }
+      maintenance_records: {
+        Row: {
+          id: string
+          user_id: string
+          equipment_tag: string
+          name: string
+          area: string | null
+          health: number | null
+          status: string | null
+          rul: number | null
+          last_service: string | null
+          trend: import('./types').Json | null
+          scheduled_week: string | null
+          is_completed: boolean | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          equipment_tag: string
+          name: string
+          area?: string | null
+          health?: number | null
+          status?: string | null
+          rul?: number | null
+          last_service?: string | null
+          trend?: import('./types').Json | null
+          scheduled_week?: string | null
+          is_completed?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          equipment_tag?: string
+          name?: string
+          area?: string | null
+          health?: number | null
+          status?: string | null
+          rul?: number | null
+          last_service?: string | null
+          trend?: import('./types').Json | null
+          scheduled_week?: string | null
+          is_completed?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          description: string | null
+          type: string
+          read: boolean | null
+          archived: boolean | null
+          action_url: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          description?: string | null
+          type?: string
+          read?: boolean | null
+          archived?: boolean | null
+          action_url?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          description?: string | null
+          type?: string
+          read?: boolean | null
+          archived?: boolean | null
+          action_url?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -179,6 +335,11 @@ export type Database = {
           full_name: string | null
           id: string
           updated_at: string
+          role: string | null
+          company: string | null
+          designation: string | null
+          phone: string | null
+          location: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -188,6 +349,11 @@ export type Database = {
           full_name?: string | null
           id: string
           updated_at?: string
+          role?: string | null
+          company?: string | null
+          designation?: string | null
+          phone?: string | null
+          location?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -196,6 +362,59 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          updated_at?: string
+          role?: string | null
+          company?: string | null
+          designation?: string | null
+          phone?: string | null
+          location?: string | null
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          id: string
+          user_id: string
+          theme: string | null
+          language: string | null
+          timezone: string | null
+          notifications_email: boolean | null
+          notifications_push: boolean | null
+          dashboard_layout: import('./types').Json | null
+          security_2fa: boolean | null
+          api_keys: import('./types').Json | null
+          integrations: import('./types').Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          theme?: string | null
+          language?: string | null
+          timezone?: string | null
+          notifications_email?: boolean | null
+          notifications_push?: boolean | null
+          dashboard_layout?: import('./types').Json | null
+          security_2fa?: boolean | null
+          api_keys?: import('./types').Json | null
+          integrations?: import('./types').Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          theme?: string | null
+          language?: string | null
+          timezone?: string | null
+          notifications_email?: boolean | null
+          notifications_push?: boolean | null
+          dashboard_layout?: import('./types').Json | null
+          security_2fa?: boolean | null
+          api_keys?: import('./types').Json | null
+          integrations?: import('./types').Json | null
+          created_at?: string
           updated_at?: string
         }
         Relationships: []

@@ -61,7 +61,61 @@ let _supabase: ReturnType<typeof createSupabaseClient> | undefined;
 // import { supabase } from "@/integrations/supabase/client";
 export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>, {
   get(_, prop, receiver) {
-    if (!_supabase) _supabase = createSupabaseClient();
+    if (!_supabase) {
+      _supabase = createSupabaseClient();
+      
+      // Override getSession for Demo Mode
+      const originalGetSession = _supabase.auth.getSession.bind(_supabase.auth);
+      _supabase.auth.getSession = async () => {
+        if (typeof window !== "undefined" && localStorage.getItem("demo_mode") === "true") {
+          return {
+            data: {
+              session: {
+                access_token: "demo-token",
+                token_type: "bearer",
+                expires_in: 3600,
+                expires_at: Math.floor(Date.now() / 1000) + 3600,
+                refresh_token: "demo-refresh",
+                user: {
+                  id: "demo-user-1234",
+                  aud: "authenticated",
+                  role: "authenticated",
+                  email: "demo@industrialmind.ai",
+                  app_metadata: {},
+                  user_metadata: { full_name: "Demo User" },
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                }
+              }
+            },
+            error: null
+          } as any;
+        }
+        return originalGetSession();
+      };
+      
+      const originalGetUser = _supabase.auth.getUser.bind(_supabase.auth);
+      _supabase.auth.getUser = async (jwt?: string) => {
+        if (typeof window !== "undefined" && localStorage.getItem("demo_mode") === "true") {
+           return {
+             data: {
+               user: {
+                  id: "demo-user-1234",
+                  aud: "authenticated",
+                  role: "authenticated",
+                  email: "demo@industrialmind.ai",
+                  app_metadata: {},
+                  user_metadata: { full_name: "Demo User" },
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                }
+             },
+             error: null
+           } as any;
+        }
+        return originalGetUser(jwt);
+      };
+    }
     return Reflect.get(_supabase, prop, receiver);
   },
 });

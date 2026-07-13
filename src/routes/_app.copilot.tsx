@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -14,8 +15,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { suggestedPrompts } from "@/lib/mock-data";
 import { toast } from "sonner";
+
+const suggestedPrompts = [
+  { title: "Diagnose P-101 high vibration alarms", desc: "Correlate vibration logs with seal failure patterns and RUL.", icon: "Wrench" },
+  { title: "Review ISO 55001 audit compliance gap", desc: "Identify missing asset management documentation and corrective items.", icon: "ShieldCheck" },
+  { title: "Extract HAZOP safeguards for Unit 4", desc: "List relief valve trip setpoints and interlock test schedules.", icon: "FileSearch" },
+  { title: "Forecast heat exchanger fouling trends", desc: "Analyze historical clean-in-place cycles across HX-88 and HX-92.", icon: "TrendingUp" },
+];
 
 const promptIcons: Record<string, any> = { Wrench, ShieldCheck, FileSearch, TrendingUp };
 
@@ -43,20 +50,13 @@ function Copilot() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [streamingMessage, setStreamingMessage] = useState("");
+  const [streamingUserMessage, setStreamingUserMessage] = useState("");
   const [streamingCitations, setStreamingCitations] = useState<Citation[] | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
-  const { data: session } = useQuery({
-    queryKey: ["session"],
-    queryFn: async () => {
-      const { data } = await supabase.auth.getSession();
-      return data.session;
-    }
-  });
-
-  const userId = session?.user?.id;
+  const { userId } = useAuth();
 
   const { data: conversations = [] } = useQuery({
     queryKey: ["copilot_conversations"],
@@ -98,9 +98,11 @@ function Copilot() {
   }, [messages, streamingMessage]);
 
   const sendMessage = async (text: string, existingChatId?: string) => {
-    if (!text.trim() || !userId || isStreaming) return;
+    const userPrompt = text.trim();
+    if (!userPrompt || !userId || isStreaming) return;
 
     let chatId = existingChatId || activeChatId;
+    setStreamingUserMessage(userPrompt);
     setInput("");
 
     // Create a new conversation if none exists
@@ -109,7 +111,7 @@ function Copilot() {
         .from("copilot_conversations")
         .insert({
           user_id: userId,
-          title: text.substring(0, 40) + (text.length > 40 ? "..." : ""),
+          title: userPrompt.substring(0, 40) + (userPrompt.length > 40 ? "..." : ""),
         })
         .select()
         .single();
@@ -123,7 +125,6 @@ function Copilot() {
       queryClient.invalidateQueries({ queryKey: ["copilot_conversations"] });
     }
 
-    // Optimistically update UI could be done here, but we will rely on streaming state
     setIsStreaming(true);
     setStreamingMessage("");
     setStreamingCitations(null);
@@ -133,11 +134,16 @@ function Copilot() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: text,
+          message: userPrompt,
           conversationId: chatId,
           userId: userId
         }),
       });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || response.statusText);
+      }
 
       if (!response.body) throw new Error("No response body");
 
@@ -177,7 +183,10 @@ function Copilot() {
     } finally {
       setIsStreaming(false);
       queryClient.invalidateQueries({ queryKey: ["copilot_messages", chatId] });
+      queryClient.invalidateQueries({ queryKey: ["copilot_messages", activeChatId] });
+      queryClient.invalidateQueries({ queryKey: ["copilot_conversations"] });
       setStreamingMessage("");
+      setStreamingUserMessage("");
       setStreamingCitations(null);
     }
   };
@@ -275,7 +284,7 @@ function Copilot() {
 
                 {isStreaming && (
                   <>
-                    <UserBubble text={input || "..."} />
+                    <UserBubble text={streamingUserMessage || input || "..."} />
                     <AssistantBubble text={streamingMessage} citations={streamingCitations} streaming />
                   </>
                 )}

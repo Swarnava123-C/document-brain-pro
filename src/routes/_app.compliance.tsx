@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { getComplianceDashboardFn, generateAuditReportFn, ComplianceStandard } from "@/functions/compliance";
 import {
@@ -22,15 +23,7 @@ function Compliance() {
   const [reportStandard, setReportStandard] = useState<string>("");
   const [isReportOpen, setIsReportOpen] = useState(false);
 
-  // Auth Session
-  const { data: session } = useQuery({
-    queryKey: ["session"],
-    queryFn: async () => {
-      const { data } = await supabase.auth.getSession();
-      return data.session;
-    }
-  });
-  const userId = session?.user?.id;
+  const { userId } = useAuth();
 
   // Fetch Compliance Dashboard Data
   const { data: dashboard, isLoading } = useQuery({

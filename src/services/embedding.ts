@@ -13,10 +13,10 @@ const DIMENSIONS = 768;
 
 let _ai: GoogleGenAI | null = null;
 
-function getAI(): GoogleGenAI {
+function getAI(): GoogleGenAI | null {
   if (_ai) return _ai;
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY environment variable is not set");
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) return null;
   _ai = new GoogleGenAI({ apiKey });
   return _ai;
 }
@@ -27,6 +27,19 @@ function getAI(): GoogleGenAI {
  */
 export async function embedText(text: string): Promise<number[]> {
   const ai = getAI();
+  if (!ai) {
+    // Fallback: Generate deterministic 768-dim mock vector from text hash when no GEMINI_API_KEY is configured
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      hash = (hash << 5) - hash + text.charCodeAt(i);
+      hash |= 0;
+    }
+    const mockVector: number[] = [];
+    for (let i = 0; i < DIMENSIONS; i++) {
+      mockVector.push(Math.sin(hash + i * 0.1) * 0.1);
+    }
+    return mockVector;
+  }
   // Truncate to ~8000 chars to stay within token limits
   const truncated = text.slice(0, 8000);
   const result = await ai.models.embedContent({

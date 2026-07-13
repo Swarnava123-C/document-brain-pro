@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { getEquipmentHealthFn, generateRCAFn, EquipmentHealth } from "@/functions/maintenance";
 import {
@@ -26,22 +27,14 @@ function Maintenance() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
 
-  // 1. Get Auth Session
-  const { data: session } = useQuery({
-    queryKey: ["session"],
-    queryFn: async () => {
-      const { data } = await supabase.auth.getSession();
-      return data.session;
-    }
-  });
-  const userId = session?.user?.id;
+  const { userId } = useAuth();
 
   // 2. Fetch Equipment Health Registry
   const { data: equipmentList = [], isLoading: isLoadingHealth } = useQuery({
     queryKey: ["equipment_health"],
     queryFn: async () => {
       if (!userId) return [];
-      return await getEquipmentHealthFn(userId);
+      return await getEquipmentHealthFn({ data: userId });
     },
     enabled: !!userId,
   });
@@ -60,7 +53,7 @@ function Maintenance() {
     queryKey: ["asset_rca", selectedAssetId],
     queryFn: async () => {
       if (!userId || !selectedAssetId) return null;
-      return await generateRCAFn({ equipmentId: selectedAssetId, userId });
+      return await generateRCAFn({ data: { equipmentId: selectedAssetId, userId } });
     },
     enabled: !!userId && !!selectedAssetId,
     staleTime: 1000 * 60 * 10, // Cache for 10 mins so we don't spam Gemini
@@ -73,7 +66,7 @@ function Maintenance() {
 
   // Format Health Trend Chart Data based on Top 3 Critical Assets
   const chartData = useMemo(() => {
-    if (equipmentList.length === 0) return [];
+    if (equipmentList.length === 0) return { data: [], lines: [] };
     
     // We'll graph up to 3 assets (the selected one, plus 1 or 2 others to compare)
     const topAssetsToGraph = equipmentList.slice(0, 3);
@@ -82,7 +75,7 @@ function Maintenance() {
     }
 
     const labels = ["Wk -8", "Wk -7", "Wk -6", "Wk -5", "Wk -4", "Wk -3", "Wk -2", "Current"];
-    const formattedData = [];
+    const formattedData: any[] = [];
 
     for (let i = 0; i < 8; i++) {
       const dataPoint: any = { time: labels[i] };
@@ -160,7 +153,7 @@ function Maintenance() {
                     <YAxis stroke="var(--color-muted-foreground)" fontSize={11} domain={[0, 100]} />
                     <RTooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid var(--color-border)", borderRadius: 12, fontSize: 12, color: "hsl(var(--foreground))" }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    {chartData.lines.map((line, idx) => {
+                    {chartData.lines.map((line: any, idx: number) => {
                       const colors = ["var(--color-destructive)", "var(--color-warning)", "var(--color-info)"];
                       return (
                         <Line key={line.id} type="monotone" dataKey={line.id} stroke={colors[idx % colors.length]} strokeWidth={idx === 0 ? 3 : 1.5} dot={{ r: 3 }} />

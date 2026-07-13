@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { getKnowledgeGraphFn, getNodeDetailsFn, GraphNode, GraphEdge } from "@/functions/graph";
 import {
@@ -12,11 +13,8 @@ import { Input } from "@/components/ui/input";
 import { PageBody, PageHeader } from "@/components/layout/page-header";
 import ReactMarkdown from "react-markdown";
 
-// Since ForceGraph2D uses canvas, we only render it on the client
-let ForceGraph2D: any = null;
-if (typeof window !== "undefined") {
-  ForceGraph2D = require("react-force-graph-2d").default;
-}
+// Dynamically import ForceGraph2D for client-side rendering
+const ForceGraph2D = lazy(() => import("react-force-graph-2d"));
 
 export const Route = createFileRoute("/_app/knowledge-graph")({
   head: () => ({ meta: [{ title: "Knowledge Graph — IndustrialMind AI" }] }),
@@ -36,22 +34,38 @@ const kindStyle: Record<string, { fill: string; icon: any; label: string }> = {
 function KnowledgeGraph() {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const fgRef = useRef<any>();
+  const [isMounted, setIsMounted] = useState(false);
+  const fgRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 640 });
 
-  const { data: session } = useQuery({
-    queryKey: ["session"],
-    queryFn: async () => {
-      const { data } = await supabase.auth.getSession();
-      return data.session;
-    }
-  });
-  const userId = session?.user?.id;
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width && entry.contentRect.height) {
+          setDimensions({
+            width: Math.floor(entry.contentRect.width),
+            height: Math.floor(entry.contentRect.height),
+          });
+        }
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [isMounted]);
+
+  const { userId } = useAuth();
 
   const { data: graphData, isLoading: isLoadingGraph } = useQuery({
     queryKey: ["knowledge_graph"],
     queryFn: async () => {
       if (!userId) return { nodes: [], edges: [] };
-      return await getKnowledgeGraphFn(userId);
+      return await getKnowledgeGraphFn({ data: userId });
     },
     enabled: !!userId
   });
@@ -61,10 +75,12 @@ function KnowledgeGraph() {
     queryFn: async () => {
       if (!userId || !selectedNode) return null;
       return await getNodeDetailsFn({
-        nodeId: selectedNode.id,
-        nodeLabel: selectedNode.label,
-        nodeKind: selectedNode.kind,
-        userId
+        data: {
+          nodeId: selectedNode.id,
+          nodeLabel: selectedNode.label,
+          nodeKind: selectedNode.kind,
+          userId
+        }
       });
     },
     enabled: !!userId && !!selectedNode
@@ -72,8 +88,8 @@ function KnowledgeGraph() {
 
   // Handle Search Filtering
   const filteredData = useMemo(() => {
-    if (!graphData) return { nodes: [], edges: [] };
-    if (!searchQuery) return graphData;
+    if (!graphData) return { nodes: [], links: [] };
+    if (!searchQuery) return { nodes: graphData.nodes, links: graphData.edges };
 
     const query = searchQuery.toLowerCase();
     const matchedNodes = new Set<string>();
@@ -85,7 +101,7 @@ function KnowledgeGraph() {
     const filteredNodes = graphData.nodes.filter(n => matchedNodes.has(n.id));
     const filteredEdges = graphData.edges.filter(e => matchedNodes.has(e.source as string) && matchedNodes.has(e.target as string));
 
-    return { nodes: filteredNodes, edges: filteredEdges };
+    return { nodes: filteredNodes, links: filteredEdges };
   }, [graphData, searchQuery]);
 
   const handleZoomIn = () => fgRef.current?.zoom(fgRef.current.zoom() * 1.2, 400);
@@ -129,7 +145,7 @@ function KnowledgeGraph() {
       <PageBody className="flex-1 pb-4">
         <div className="grid h-full gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* Graph canvas */}
-          <div className="relative h-full min-h-[640px] overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <div ref={containerRef} className="relative h-full min-h-[640px] overflow-hidden rounded-2xl border border-border/60 bg-card">
             <div className="absolute inset-0 gradient-mesh opacity-40 pointer-events-none" />
             <div className="absolute inset-x-4 top-4 z-10 flex items-center gap-2 pointer-events-auto">
               <div className="relative flex-1 max-w-sm">
@@ -154,23 +170,29 @@ function KnowledgeGraph() {
                   <p className="animate-pulse">Building semantic graph from documents...</p>
                 </div>
               </div>
-            ) : typeof window !== "undefined" && ForceGraph2D && (
+            ) : isMounted && (
               <div className="absolute inset-0 [&_canvas]:outline-none">
-                <ForceGraph2D
-                  ref={fgRef}
-                  graphData={filteredData}
-                  nodeCanvasObject={paintNode}
-                  nodeRelSize={6}
-                  linkColor={() => 'rgba(148, 163, 184, 0.2)'}
-                  linkWidth={0.5}
-                  onNodeClick={(node: any) => {
-                    setSelectedNode(node);
-                    fgRef.current?.centerAt(node.x, node.y, 1000);
-                    fgRef.current?.zoom(2.5, 1000);
-                  }}
-                  onBackgroundClick={() => setSelectedNode(null)}
-                  d3VelocityDecay={0.3}
-                />
+                <Suspense fallback={null}>
+                  <ForceGraph2D
+                    ref={fgRef}
+                    width={dimensions.width}
+                    height={dimensions.height}
+                    graphData={filteredData}
+                    nodeCanvasObject={paintNode}
+                    nodeRelSize={6}
+                    linkColor={() => 'rgba(148, 163, 184, 0.35)'}
+                    linkWidth={1.2}
+                    cooldownTicks={100}
+                    onEngineStop={() => fgRef.current?.zoomToFit(400, 40)}
+                    onNodeClick={(node: any) => {
+                      setSelectedNode(node);
+                      fgRef.current?.centerAt(node.x, node.y, 1000);
+                      fgRef.current?.zoom(2.5, 1000);
+                    }}
+                    onBackgroundClick={() => setSelectedNode(null)}
+                    d3VelocityDecay={0.3}
+                  />
+                </Suspense>
               </div>
             )}
 

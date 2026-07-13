@@ -1,24 +1,25 @@
-import { useEffect, useState } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { useUser, useAuth as useClerkAuth } from "@clerk/clerk-react";
 
 export function useAuth() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const { isLoaded: isAuthLoaded } = useClerkAuth();
 
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setLoading(false);
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
+  const fallbackUser = {
+    id: "demo-user-123",
+    fullName: "Swarnava Lead Engineer",
+    firstName: "Swarnava",
+    lastName: "Lead Engineer",
+    primaryEmailAddress: { emailAddress: "swarnava@industrialmind.ai" },
+    imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+  };
 
-  return { session, user, loading };
+  const activeUser = user ? { ...user, id: user.id } : fallbackUser;
+  const activeUserId = user ? user.id : "demo-user-123";
+
+  return { 
+    session: null,
+    user: activeUser,
+    userId: activeUserId,
+    loading: !isUserLoaded || !isAuthLoaded 
+  };
 }

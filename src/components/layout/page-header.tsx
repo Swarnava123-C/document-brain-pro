@@ -19,6 +19,6 @@ export function PageHeader({
   );
 }
 
-export function PageBody({ children }: { children: ReactNode }) {
-  return <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-8">{children}</div>;
+export function PageBody({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={`mx-auto max-w-[1600px] px-4 py-6 md:px-8 ${className || ""}`}>{children}</div>;
 }

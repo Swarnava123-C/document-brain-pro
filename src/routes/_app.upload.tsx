@@ -112,9 +112,15 @@ function UploadCenter() {
       toast.success(`${file.name} queued for intelligence pipeline`);
       setDocs((d) => [row, ...d]);
       setSelectedId(row.id);
-      if (!upErr) {
-        processDocumentFn({ data: { docId: row.id, storagePath, filename: file.name } }).catch(console.error);
-      }
+      
+      processDocumentFn({ data: { docId: row.id, storagePath: upErr ? null : storagePath, filename: file.name } })
+        .then(() => {
+          load();
+        })
+        .catch((err) => {
+          console.error("Pipeline processing error:", err);
+          load();
+        });
     }
   }
 
